@@ -484,7 +484,9 @@
     const facts = [];
     if (g.sent) facts.push('נשלחה ' + W.to + ' הזמנה ב-' + fmt(g.sent) + '.');
     if (replied(g)) facts.push(W.who + ' (כמות משתתפים: ' + g.count + ').');
-    $('#delText').innerHTML = 'למחוק ממאגר הנתונים את <b>' + esc(shownName(g)) + '</b>?';
+    // שם מלא וטלפון (המזהה הייחודי), כדי לא לטעות בין מוזמנים עם שם בהזמנה זהה
+    const fullName = [g.first, g.last].filter(Boolean).join(' ');
+    $('#delText').innerHTML = 'למחוק ממאגר הנתונים את <b>' + esc(fullName) + '</b> <span dir="ltr">(' + esc(g.phone) + ')</span>?';
     $('#delFacts').textContent = facts.join(' ');
     $('#delFacts').hidden = !facts.length;
     $('#delInfo').textContent = 'יימחקו גם הצפיה והתגובה ' + W.his + ', והקישור שנשלח ' + W.to + ' יפסיק לעבוד. הפעולה בלתי הפיכה!';

@@ -49,6 +49,8 @@
     [hidden] { display: none !important; }
     .stage { display: grid; grid-template-columns: 1fr 1fr 130px; gap: 8px; margin-bottom: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
     button.act { padding: .55em 1.6em; }
+    #contactsBtn { background: #dcebf8; border-color: #a9c9e6; color: var(--accent-dark); font-weight: bold; transition: background-color .3s; }
+    #contactsBtn:hover { background: #c6dff3; }
     .stage > div { min-width: 0; }
     .stage label { font-size: .8rem; color: var(--muted); margin-bottom: 2px; min-height: 2.6em; display: flex; align-items: flex-end; line-height: 1.25; }
     .stage input, .stage select { width: 100%; min-width: 0; }
@@ -104,11 +106,11 @@
           <div><label>נוסח הפניה <span class="req">*</span></label><select id="aForm"><option value=""></option><option>יחיד</option><option>יחידה</option><option>רבים</option><option>רבות</option></select></div>
           <div><label>שולחן</label><input id="aTable"></div>
         </div>
-        <div class="row" id="contactsBox" hidden style="margin-bottom:10px"><button id="contactsBtn">הוספת מוזמן מרשימת אנשי קשר</button></div>
+        <div class="row" id="contactsBox" hidden style="margin-bottom:10px"><button id="contactsBtn">הוספת מוזמנים מרשימת אנשי קשר</button></div>
         <div id="stageList"></div>
         <div class="row" style="justify-content:flex-end;margin-top:41px"><span id="aMsg"></span><button class="act" id="aCancel">ביטול</button><button class="primary act" id="aSave">הוספה</button></div>
       </div>
-      <p class="muted" id="noContacts" hidden>הוספת מוזמן מרשימת אנשי קשר זמינה רק באנדרואיד ב-Chrome.</p>
+      <p class="muted" id="noContacts" hidden>הוספת מוזמנים מרשימת אנשי קשר זמינה רק באנדרואיד ב-Chrome.</p>
     </section>
   </div>
 </div>

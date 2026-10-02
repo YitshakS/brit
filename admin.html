@@ -48,6 +48,7 @@
     .modal { background: #fff; border-radius: 14px; padding: 18px; width: min(90vw, 380px); text-align: center; }
     [hidden] { display: none !important; }
     .stage { display: grid; grid-template-columns: 1fr 1fr 130px; gap: 8px; margin-bottom: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    button.act { padding: .55em 1.6em; }
     .stage > div { min-width: 0; }
     .stage label { font-size: .8rem; color: var(--muted); margin-bottom: 2px; min-height: 2.6em; display: flex; align-items: flex-end; line-height: 1.25; }
     .stage input, .stage select { width: 100%; min-width: 0; }
@@ -103,13 +104,13 @@
           <div><label>נוסח הפניה <span class="req">*</span></label><select id="aForm"><option value=""></option><option>יחיד</option><option>יחידה</option><option>רבים</option><option>רבות</option></select></div>
           <div><label>שולחן</label><input id="aTable"></div>
         </div>
-        <div class="row" style="justify-content:flex-end;margin-top:41px"><span id="aMsg"></span><button class="primary" id="aSave" style="padding:.55em 1.6em">הוספת מוזמן</button></div>
+        <div class="row" style="justify-content:flex-end;margin-top:41px"><span id="aMsg"></span><button class="primary act" id="aSave">הוספת מוזמן</button></div>
       </div>
       <div class="panel" id="contactsBox" hidden>
         <div class="row"><button id="contactsBtn">הוספת מוזמן מרשימת אנשי קשר</button><span id="stageDone"></span></div>
         <div id="stageBox" hidden style="margin-top:10px">
           <div id="stageList"></div>
-          <div class="row" style="justify-content:flex-end"><span id="stageMsg" class="muted"></span><button id="stageCancel">ביטול</button><button class="primary" id="stageSave" style="padding:.55em 1.6em">הוספת כולם</button></div>
+          <div class="row" style="justify-content:flex-end"><span id="stageMsg" class="muted"></span><button class="act" id="stageCancel">ביטול</button><button class="primary act" id="stageSave">הוספת כולם</button></div>
         </div>
       </div>
       <p class="muted" id="noContacts" hidden>הוספת מוזמן מרשימת אנשי קשר זמינה רק באנדרואיד ב-Chrome.</p>
@@ -521,18 +522,14 @@
   ['aFirst', 'aPhone', 'aForm'].forEach(i => $('#' + i).addEventListener('input', () => { $('#' + i).style.borderColor = ''; }));
   const showMsg = (sel, t, ok) => { const m = $(sel); m.textContent = t; m.style.color = ok ? 'var(--ok)' : 'var(--bad)'; m.style.fontWeight = 'bold'; };
   const addMsg = (t, ok) => showMsg('#aMsg', t, ok);
+  // ולידציה משותפת לשני טפסי ההוספה: מחזירה את רשימת השדות השגויים וההודעה המתאימה
+  const checkGuest = x => { const bad = []; if (!x.first) bad.push('first'); if (!digits9(x.phone)) bad.push('phone'); if (!x.form) bad.push('form'); return bad; };
+  const validationMsg = (bad, phonesFilled) => bad.every(f => f === 'phone') && phonesFilled ? 'טלפון לא תקין' : bad.length > 1 ? '* שדות חובה' : '* שדה חובה';
   $('#aSave').onclick = async () => {
     const x = { first: $('#aFirst').value.trim(), last: $('#aLast').value.trim(), display: $('#aDisplay').value.trim(), phone: $('#aPhone').value.trim(), form: $('#aForm').value, table: $('#aTable').value.trim() };
-    const bad = [];
-    if (!x.first) bad.push('aFirst');
-    if (!digits9(x.phone)) bad.push('aPhone');
-    if (!x.form) bad.push('aForm');
-    ['aFirst', 'aPhone', 'aForm'].forEach(i => $('#' + i).style.borderColor = bad.includes(i) ? 'var(--bad)' : '');
-    if (bad.length) {
-      const onlyBadPhone = bad.length === 1 && bad[0] === 'aPhone' && x.phone;
-      addMsg(onlyBadPhone ? 'טלפון לא תקין' : bad.length > 1 ? '* שדות חובה' : '* שדה חובה', false);
-      return;
-    }
+    const bad = checkGuest(x);
+    ['first', 'phone', 'form'].forEach(f => $('#a' + f[0].toUpperCase() + f.slice(1)).style.borderColor = bad.includes(f) ? 'var(--bad)' : '');
+    if (bad.length) { addMsg(validationMsg(bad, !!x.phone), false); return; }
     const r = await call('add', { guests: [x] });
     if (r.duplicates && r.duplicates.length) { addMsg('הטלפון כבר קיים', false); return; }
     ['aFirst', 'aLast', 'aDisplay', 'aPhone', 'aTable', 'aForm'].forEach(i => $('#' + i).value = '');
@@ -568,23 +565,19 @@
     ['input', 'change'].forEach(ev => $('#stageList').addEventListener(ev, e => { e.target.style.borderColor = ''; }));
     $('#stageSave').onclick = async () => {
       // אותה ולידציה כמו בטופס ההוספה הרגיל: שם פרטי, טלפון תקין ונוסח הפניה, עם סימון אדום והודעה
-      let badFields = 0, badPhones = 0;
+      const allBad = [];
       const list = [...document.querySelectorAll('#stageList .stage')].map(d => {
         const i = d.querySelectorAll('input'), s = d.querySelector('select'), ph = d.querySelector('.ph');
         const x = { first: i[0].value.trim(), last: i[1].value.trim(), form: s.value, phone: d.dataset.phone };
-        const noFirst = !x.first, noForm = !x.form, noPhone = !digits9(x.phone);
-        i[0].style.borderColor = noFirst ? 'var(--bad)' : '';
-        s.style.borderColor = noForm ? 'var(--bad)' : '';
-        ph.style.color = noPhone ? 'var(--bad)' : '';
-        ph.style.fontWeight = noPhone ? 'bold' : '';
-        badFields += (noFirst ? 1 : 0) + (noForm ? 1 : 0);
-        badPhones += noPhone ? 1 : 0;
+        const bad = checkGuest(x);
+        i[0].style.borderColor = bad.includes('first') ? 'var(--bad)' : '';
+        s.style.borderColor = bad.includes('form') ? 'var(--bad)' : '';
+        ph.style.color = bad.includes('phone') ? 'var(--bad)' : '';
+        ph.style.fontWeight = bad.includes('phone') ? 'bold' : '';
+        allBad.push(...bad);
         return x;
       });
-      if (badFields || badPhones) {
-        showMsg('#stageMsg', badFields + badPhones === badPhones ? 'טלפון לא תקין' : badFields > 1 || badPhones ? '* שדות חובה' : '* שדה חובה', false);
-        return;
-      }
+      if (allBad.length) { showMsg('#stageMsg', validationMsg(allBad, true), false); return; }
       const r = await call('add', { guests: list });
       const dups = r.duplicates || [];
       const dupMsg = (dups.length === 1 ? 'הטלפון כבר קיים: ' : 'הטלפונים כבר קיימים: ') + dups.join(', ');

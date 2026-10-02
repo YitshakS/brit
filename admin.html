@@ -48,7 +48,10 @@
     .modal { background: #fff; border-radius: 14px; padding: 18px; width: min(90vw, 380px); text-align: center; }
     [hidden] { display: none !important; }
     .stage { margin-bottom: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
-    button.act { padding: .55em 1.6em; }    #contactsBtn { background: #dcebf8; border-color: #a9c9e6; color: var(--accent-dark); font-weight: bold; transition: background-color .3s; }
+    button.act { padding: .55em 1.6em; }
+    #boot { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+    #boot[hidden] { display: none; }
+    #boot p { margin: 0; font-weight: bold; color: var(--accent-dark); }    #contactsBtn { background: #dcebf8; border-color: #a9c9e6; color: var(--accent-dark); font-weight: bold; transition: background-color .3s; }
     #contactsBtn:hover { background: #c6dff3; }
     #err { color: var(--bad); font-size: .9rem; }
     .req { color: var(--bad); }
@@ -70,7 +73,7 @@
 <body>
 <div class="wrap">
 
-  <div id="boot" class="panel loading" role="status" aria-live="polite"><div class="spin"></div><p>טוען נתונים…</p></div>
+  <div id="boot" role="status" aria-live="polite"><div class="spin"></div><p>טוען נתונים…</p></div>
 
   <div id="login" class="panel" hidden>
     <h1 style="font-size:1.4rem">ניהול הזמנות</h1>

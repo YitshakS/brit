@@ -31,6 +31,8 @@
     th.stick, td.stick { position: sticky; inset-inline-start: 0; z-index: 2; border-inline-end: 2px solid var(--line); }
     thead th.stick, thead tr.filters th.stick { z-index: 5; }
     td.cell { cursor: pointer; min-width: 70px; }
+    .clip { display: inline-block; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+    @media (min-width: 700px) { .clip { max-width: 16em; } }
     td.cell:hover { background: #f3f7fb; }
     .gap { display: inline-block; width: 1.2em; }
     .muted { color: var(--muted); }
@@ -361,7 +363,8 @@
       td.firstChild.onclick = () => send(g);
       return td;
     }
-    td.innerHTML = display(g, c);
+    // בעמודה הצמודה: שם ארוך נחתך ב"…" (השם המלא בריחוף ובעריכה), כדי שלא יתפוס את המסך
+    td.innerHTML = c.stick ? '<span class="clip" title="' + esc(shownName(g)) + '">' + display(g, c) + '</span>' : display(g, c);
     td.onclick = () => openEdit(g, c);
     return td;
   }

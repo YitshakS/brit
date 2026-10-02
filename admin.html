@@ -502,7 +502,7 @@
     let r;
     try { r = await call('delete', { guest: delTarget }); } catch (x) { return; }
     if (!r.ok) {
-      $('#delMsg').textContent = r.error === 'not_found' ? 'השורה לא קיימת בבסיס הנתונים, נסה לרענן' : 'שגיאה במחיקה';
+      $('#delMsg').textContent = r.error === 'not_found' ? 'השורה לא קיימת במאגר הנתונים, נסה לרענן' : 'שגיאה במחיקה';
       $('#delOk').textContent = 'רענון'; $('#delOk').dataset.mode = 'refresh'; $('#delOk').disabled = false;
       return;
     }

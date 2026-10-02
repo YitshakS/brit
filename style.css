@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
+
+:root {
+  --bg: #eaf3fb;
+  --card: rgba(255, 255, 255, 0.82);
+  --ink: #2b3a4a;
+  --accent: #2f6fa3;
+  --accent-dark: #245580;
+  --muted: #6b7a8a;
+  --line: #d3dee9;
+  --ok: #28a745;
+  --bad: #d9534f;
+  --bg-image: url('img/bg-desktop.png');
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Varela Round', system-ui, sans-serif;
+  font-size: clamp(16px, 2.2vmin, 20px);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* שמיים: נמתחים לכל גודל המסך. השכבה הלבנה השקופה מבהירה אותם (להבהרה חזקה יותר מעלים את המספר, 0 עד 1) */
+body { background: linear-gradient(rgba(255, 255, 255, .5), rgba(255, 255, 255, .5)) fixed, url('img/sky.webp') no-repeat center / 100% 100% fixed, var(--bg); }
+
+/* פריטי הקישוט: שומרים על פרופורציות וגדלים לפי גובה המסך. המיקום באחוזים מהמסך */
+#decor { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+#decor img { position: absolute; width: auto; opacity: .85; }
+#decor .carriage { left: 6%; top: 4%; height: min(20vh, 30vw); }
+#decor .teddy { right: 5%; top: 5%; height: min(14vh, 22vw); }
+#decor .pacifier { right: 5%; top: 33%; height: min(8vh, 13vw); }
+#decor .bottle { left: 5%; top: 36%; height: min(12vh, 19vw); }
+#decor .chair { left: 6%; bottom: 3%; height: min(26vh, 40vw); }
+#decor .cup { right: 7%; bottom: 4%; height: min(13vh, 20vw); }
+
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  width: min(92vw, 560px);
+  margin: 16px auto;
+  padding: clamp(14px, 3vmin, 28px);
+}
+
+h1 { color: var(--accent); font-size: clamp(1.6rem, 6vmin, 2.4rem); margin: 0 0 .5em; }
+h2 { color: var(--accent); font-size: clamp(2.2rem, 10vmin, 4rem); margin: .2em 0; }
+p { line-height: 1.7; margin: .6em 0; }
+.hl { color: var(--accent); font-weight: bold; }
+a { color: var(--accent); font-weight: bold; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.muted { color: var(--muted); }
+
+button, input, select { font: inherit; }
+button { cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: .45em 1em; }
+button.primary { background: var(--accent); color: #fff; border: none; transition: background-color .4s; }
+button.primary:hover { background: var(--accent-dark); }
+button:disabled { background: #8d9aa8; color: #fff; cursor: default; border: none; }
+input, select { border: 1px solid var(--line); border-radius: 10px; padding: .4em .6em; background: #fff; color: var(--ink); }
+
+.stepper { display: flex; justify-content: center; align-items: center; gap: 6px; margin: .5em 0 1em; }
+.stepper button, .stepper input { height: clamp(40px, 5.5vh, 58px); }
+.stepper button { width: clamp(40px, 5.5vh, 58px); padding: 0; font-size: 1.3em; font-family: monospace; background: transparent; transition: background-color .2s, color .2s; }
+.stepper input { width: clamp(70px, 11vh, 118px); text-align: center; padding-inline: 0; appearance: textfield; -moz-appearance: textfield; }
+.stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+#minus { border: 1px solid #ff4d4d; color: #ff4d4d; }
+#minus:hover, #minus:active { background: #ff4d4d; color: #fff; }
+#plus { border: 1px solid #28a745; color: #28a745; }
+#plus:hover, #plus:active { background: #28a745; color: #fff; }
+.loading { padding: 1.5em 0; }
+.loading p { margin: .5em 0 0; }
+.spin { display: inline-block; width: 28px; height: 28px; border: 3px solid #cfe0ee; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: middle; }
+.spin.sm { width: 14px; height: 14px; border-width: 2px; border-color: rgba(255, 255, 255, .45); border-top-color: #fff; margin-inline-end: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 2.4s; } }
+.banner { position: fixed; top: 0; left: 0; right: 0; z-index: 10; background: #fff3d6; color: #8a5a00; padding: 5px 44px; font-size: .78rem; line-height: 1.35; text-align: center; border-bottom: 1px solid #f0d9a0; }
+#msg.good { color: #1d6b36; }
+#msg.bad { color: #a12622; }
+#msg { min-height: 2.5em; font-weight: bold; margin-top: .6em; }
+
+@media (max-height: 520px) {
+  body { align-items: flex-start; }
+  .card { margin: 8px auto; }
+  h2 { font-size: 2rem; }
+}

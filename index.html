@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>הזמנה לברית</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="decor" aria-hidden="true">
+    <img class="carriage" src="img/items/carriage.png" alt="">
+    <img class="teddy" src="img/items/teddy.png" alt="">
+    <img class="pacifier" src="img/items/pacifier.png" alt="">
+    <img class="bottle" src="img/items/bottle.png" alt="">
+    <img class="chair" src="img/items/chair.png" alt="">
+    <img class="cup" src="img/items/cup.png" alt="">
+  </div>
+  <main class="card" id="app">
+    <div class="loading" role="status" aria-live="polite">
+      <div class="spin"></div>
+      <p>טוען הזמנה…</p>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script>
+    const app = document.getElementById('app');
+    const E = CONFIG.event;
+    document.title = E.title;
+    let id = new URLSearchParams(location.search).get('id');
+    let saved = null;
+    // תצוגה מקדימה למנהל: דורשת סיסמת ניהול שמורה בדפדפן. בלעדיה הדף פועל כרגיל ורושם צפיה.
+    let adminToken = '';
+    try { adminToken = localStorage.getItem('adminToken') || ''; } catch (e) {}
+    const PREVIEW = new URLSearchParams(location.search).get('preview') === '1' && !!adminToken;
+
+    // אזהרה אם מנסים לצאת בזמן שהאישור עדיין נשלח
+    let sending = false;
+    window.addEventListener('beforeunload', e => { if (sending) { e.preventDefault(); e.returnValue = ''; } });
+
+    function notFound() {
+      app.innerHTML = '<p class="hl">נראה שהקישור אינו תקין</p><h2>404</h2><h1>הדף לא קיים</h1>';
+    }
+
+    function render(g) {
+      const w = FORM_WORDS[g.form] || FORM_WORDS['יחיד'];
+      // רק ברכת "נשמח לראות" מותאמת לנוסח הפניה. שאר ההודעות נטרליות.
+      const T = {
+        'יחיד': { see1: 'נשמח לראותך', seeN: 'נשמח לראותכם' },
+        'יחידה': { see1: 'נשמח לראותך', seeN: 'נשמח לראותכם' },
+        'רבים': { see1: 'נשמח לראותכם', seeN: 'נשמח לראותכם' },
+        'רבות': { see1: 'נשמח לראותכן', seeN: 'נשמח לראותכן' }
+      }[g.form] || { see1: 'נשמח לראותך', seeN: 'נשמח לראותכם' };
+      saved = g.count;
+      app.innerHTML =
+        (PREVIEW ? '<div class="banner"><b>תצוגה מקדימה בלבד!</b> הצפיה בהזמנה ואישור כמות המשתתפים אינם נשמרים בבסיס הנתונים</div>' : '') +
+        '<h1>' + esc(g.display) + ' ' + w.dear + '</h1>' +
+        '<p>' + esc(E.opening) + '<br>אנו שמחים ונרגשים ' + w.invite + '<br>לשמחת ברית המילה של בננו</p>' +
+        '<h2>' + esc(E.babyName) + '</h2>' +
+        '<p>שתתקיים בעז"ה<br><span class="hl">' + esc(E.dateText) + ', ' + esc(E.timeText) + '</span><br>' + esc(E.place) + '</p>' +
+        (E.wazeUrl ? '<p>או <a target="_blank" rel="noopener" href="' + esc(E.wazeUrl) + '">ללחוץ כאן לפתיחת המיקום באפליקציה</a></p>' : '') +
+        (E.note ? '<p>' + esc(E.note) + '</p>' : '') +
+        (E.rsvpDeadline ? '<p>נא לאשר השתתפות עד ' + esc(E.rsvpDeadline) + '<br>(גם לאחר האישור אפשר לעדכן)</p>' : '') +
+        '<label for="count">כמות המשתתפים</label>' +
+        '<div class="stepper"><button type="button" id="minus" aria-label="הפחת">-</button>' +
+        '<input type="number" id="count" min="0" max="50" inputmode="numeric" value="' + (g.count == null ? '' : g.count) + '">' +
+        '<button type="button" id="plus" aria-label="הוסף">+</button></div>' +
+        '<button type="button" class="primary" id="ok" disabled>אישור</button>' +
+        '<p id="msg"></p>';
+      const count = document.getElementById('count'), ok = document.getElementById('ok'), msg = document.getElementById('msg');
+
+      function check() {
+        if (PREVIEW) { ok.disabled = true; return; }
+        const v = count.value === '' ? NaN : Number(count.value);
+        msg.className = '';
+        if (!Number.isInteger(v) || v < 0 || v > 50) { msg.textContent = '⚠️ ערך לא חוקי'; msg.className = 'bad'; ok.disabled = true; return; }
+        if (v === saved) { ok.disabled = true; msg.textContent = '🟰 הכמות שנבחרה זהה לכמות שכבר נשמרה'; return; }
+        ok.disabled = false; msg.textContent = '';
+      }
+      count.addEventListener('input', check);
+      document.getElementById('minus').onclick = () => { count.value = Math.max(0, (Number(count.value) || 0) - 1); check(); };
+      document.getElementById('plus').onclick = () => { count.value = Math.min(50, (Number(count.value) || 0) + 1); check(); };
+
+      if (!PREVIEW) ok.onclick = async () => {
+        const v = Number(count.value);
+        ok.disabled = true; msg.className = ''; msg.textContent = 'שולח נתונים…';
+        ok.innerHTML = '<span class="spin sm"></span>אישור';
+        sending = true;
+        try {
+          const r = await api('rsvp', { id, count: v });
+          if (!r.ok) throw new Error(r.error);
+          saved = v;
+          msg.className = 'good';
+          msg.textContent = v === 0
+            ? 'תודה, העדכון התקבל. בעז"ה נתראה בשמחות הבאות'
+            : 'תודה! העדכון התקבל. ' + (v === 1 ? T.see1 : T.seeN) + ' 😊';
+          const b = ok.getBoundingClientRect(), portrait = innerHeight > innerWidth;
+          if (window.confetti) confetti({
+            particleCount: 100, spread: 70, startVelocity: portrait ? 60 : 45, scalar: portrait ? 1.6 : 1.2,
+            origin: { x: (b.left + b.width / 2) / innerWidth, y: (b.top + b.height / 2) / innerHeight }
+          });
+        } catch (e) {
+          msg.className = 'bad';
+          msg.textContent = '⚠️ העדכון לא התקבל, מומלץ לנסות שוב בעוד מספר דקות';
+          ok.disabled = false;
+        } finally {
+          sending = false;
+          ok.textContent = 'אישור';
+        }
+      };
+    }
+
+    (async () => {
+      if (!id) return notFound();
+      try {
+        const g = PREVIEW ? await api('preview', { token: adminToken, id }) : await getInvitation(id);
+        if (g.error === 'unauthorized' || g.error === 'locked') { app.innerHTML = '<p>אין הרשאה לתצוגה מקדימה. היכנסו קודם לדף הניהול.</p>'; return; }
+        if (!g.ok) return notFound();
+        render(g);
+      } catch (e) {
+        app.innerHTML = '<p>⚠️ ההזמנה לא נטענה, מומלץ לרענן את הדף</p>';
+      }
+    })();
+  </script>
+</body>
+</html>

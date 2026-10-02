@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>ניהול הזמנות</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { display: block; text-align: right; font-size: 16px; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 12px; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 10px; position: sticky; top: 0; background: var(--bg); padding: 6px 0; z-index: 6; }
+    .tabs button { flex: 1; padding: .6em .4em; }
+    .tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tabs #refresh { flex: 0 0 auto; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; text-align: center; font-size: .9rem; }
+    .stats b { display: block; font-size: 1.4rem; color: var(--accent); }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .grow { flex: 1 1 130px !important; min-width: 0; }
+
+    .topscroll { overflow-x: auto; overflow-y: hidden; height: 16px; position: sticky; top: var(--tabs-h, 52px); z-index: 5; background: var(--bg); margin-bottom: 4px; }
+    #topScrollInner { height: 1px; }
+    @media (hover: none) { .topscroll { display: none; } }
+    .tablebox { overflow: auto; max-height: 75vh; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+    table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: .92rem; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); border-inline-start: 1px solid var(--line); text-align: right; vertical-align: middle; background: #fff; white-space: nowrap; }
+    thead th { position: sticky; top: 0; z-index: 3; background: #f3f7fb; cursor: pointer; user-select: none; }
+    thead tr.filters th { cursor: default; padding: 4px; z-index: 3; }
+    thead tr.filters input, thead tr.filters select { width: 100%; min-width: 80px; padding: .25em .4em; font-size: .85rem; }
+    th.stick, td.stick { position: sticky; inset-inline-start: 0; z-index: 2; border-inline-end: 2px solid var(--line); }
+    thead th.stick, thead tr.filters th.stick { z-index: 5; }
+    td.cell { cursor: pointer; min-width: 70px; }
+    td.cell:hover { background: #f3f7fb; }
+    .gap { display: inline-block; width: 1.2em; }
+    .muted { color: var(--muted); }
+    .wa { background: #25d366; color: #fff; border: none; }
+    .ok { background: #def5e5; color: #1d7a3a; }
+    .no { background: #fde3e2; color: #a12622; }
+    .pill { display: inline-block; font-size: .8rem; padding: 1px 9px; border-radius: 999px; background: #eef2f6; }
+    .pill.sent { background: #e3f1fb; color: #1b5e8c; }
+    .pill.viewed { background: #fff3d6; color: #8a5a00; }
+
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 8px; }
+    .fields input, .fields select { width: 100%; }
+    .fields label { font-size: .8rem; color: var(--muted); display: block; margin-bottom: 2px; }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 9; }
+    .modal { background: #fff; border-radius: 14px; padding: 18px; width: min(90vw, 380px); text-align: center; }
+    [hidden] { display: none !important; }
+    .stage { display: grid; grid-template-columns: 1fr 1fr 110px; gap: 6px; margin-bottom: 6px; }
+    #err { color: var(--bad); font-size: .9rem; }
+    .req { color: var(--bad); }
+    #viewClose { position: absolute; top: 4px; left: 8px; z-index: 21; width: 28px; height: 28px; padding: 0; border-radius: 50%; border: none; background: rgba(0,0,0,.6); color: #fff; font-size: 1rem; line-height: 1; }
+    #viewClose:hover { background: rgba(0,0,0,.8); }
+    button.del, button.view { background: #fff; border: 1px solid var(--line); padding: .4em .8em; line-height: 0; }
+    button.del svg, button.view svg { vertical-align: middle; }
+    button.del { color: var(--bad); }
+    button.del:hover { background: #fde3e2; border-color: var(--bad); }
+    button.view { color: var(--accent); }
+    button.view:hover { background: #e3f1fb; border-color: var(--accent); }
+    button.dangerbtn { background: var(--bad); color: #fff; border: none; }
+    button.dangerbtn:disabled { background: #d9a5a3; }
+    #tab-add .fields label { min-height: 2.6em; display: flex; align-items: flex-end; line-height: 1.25; }
+    #tab-add .fields label small { display: block; font-size: .72rem; }
+    @media (min-width: 700px) { #tab-add .fields { grid-template-columns: repeat(3, 1fr); } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login" class="panel" hidden>
+    <h1 style="font-size:1.4rem">ניהול הזמנות</h1>
+    <div class="row"><input id="tok" type="password" placeholder="סיסמת ניהול" class="grow"><button class="primary" id="enter">כניסה</button></div>
+    <p id="err"></p>
+  </div>
+
+  <div id="main" hidden>
+    <nav class="tabs">
+      <button data-tab="contacts" class="on">מוזמנים</button>
+      <button data-tab="add">הוספת מוזמן</button>
+      <button id="refresh" title="רענון" aria-label="רענון">↻</button>
+    </nav>
+
+    <section id="tab-contacts">
+      <div class="panel stats" id="stats"></div>
+      <div class="row" style="margin-bottom:8px"><button id="clearF">ניקוי מסננים</button><span class="muted" id="shown"></span></div>
+      <div class="topscroll" id="topScroll"><div id="topScrollInner"></div></div>
+      <div class="tablebox"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="tab-add" hidden>
+      <div class="panel">
+        <div class="fields">
+          <div><label>שם פרטי <span class="req">*</span></label><input id="aFirst"></div>
+          <div><label>שם משפחה</label><input id="aLast"></div>
+          <div><label><span>שם שיופיע בהזמנה<small>(אם ריק יופיע השם הפרטי)</small></span></label><input id="aDisplay"></div>
+          <div><label>מספר טלפון נייד <span class="req">*</span></label><input id="aPhone" type="tel" inputmode="tel"></div>
+          <div><label>נוסח הפניה <span class="req">*</span></label><select id="aForm"><option value=""></option><option>יחיד</option><option>יחידה</option><option>רבים</option><option>רבות</option></select></div>
+          <div><label>שולחן</label><input id="aTable"></div>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:41px"><span id="aMsg"></span><button class="primary" id="aSave" style="padding:.55em 1.6em">הוספת מוזמן</button></div>
+      </div>
+      <div class="panel" id="contactsBox" hidden>
+        <button id="contactsBtn">הוספת מוזמן מרשימת אנשי קשר</button>
+        <div id="stageBox" hidden style="margin-top:10px">
+          <div id="stageList"></div>
+          <div class="row"><button class="primary" id="stageSave">הוספת כולם</button><button id="stageCancel">ביטול</button><span id="stageMsg" class="muted"></span></div>
+        </div>
+      </div>
+      <p class="muted" id="noContacts" hidden>הוספת מוזמן מרשימת אנשי קשר זמינה רק באנדרואיד ב-Chrome.</p>
+    </section>
+  </div>
+</div>
+
+<div id="viewDlg" hidden style="position:fixed;inset:0;z-index:20;background:#fff">
+  <div id="viewBox" style="width:100%;height:100%"></div>
+  <button id="viewClose" aria-label="סגירת תצוגה מקדימה" title="סגירה">✕</button>
+</div>
+
+<div class="overlay" id="editDlg" hidden>
+  <div class="modal" style="text-align:right">
+    <h2 id="edTitle" style="font-size:1.1rem;margin:0 0 10px"></h2>
+    <div id="edField"></div>
+    <p id="edMsg" class="muted" style="min-height:1.5em"></p>
+    <div class="row" style="justify-content:flex-end"><button id="edCancel">ביטול</button><button class="primary" id="edSave">שמירה</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="delDlg" hidden>
+  <div class="modal" style="text-align:right">
+    <h2 style="font-size:1.1rem;margin:0 0 8px;display:flex;gap:8px;align-items:center"><span style="color:var(--bad);font-size:1.5rem;line-height:1" aria-hidden="true">⚠</span><span id="delText"></span></h2>
+    <p id="delFacts" style="margin:0 0 8px"></p>
+    <p id="delInfo" style="margin:0 0 8px;background:#fde3e2;border-radius:8px;padding:8px 10px"></p>
+    <p id="delMsg" style="min-height:1.5em;margin:0 0 6px;color:var(--bad);font-weight:bold"></p>
+    <div class="row" style="justify-content:flex-end"><button class="primary" id="delCancel">ביטול</button><button id="delOk" class="dangerbtn">מחיקה</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="confirm" hidden>
+  <div class="modal">
+    <p id="confirmText"></p>
+    <div class="row" style="justify-content:center">
+      <button class="primary" id="yes">כן, שלחתי</button>
+      <button id="no">לא שלחתי</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+  const $ = s => document.querySelector(s);
+  const FORMS = ['יחיד', 'יחידה', 'רבים', 'רבות'];
+  let token = '', guests = [], pending = null;
+  let sort = { k: 'display', asc: true }, filt = {};
+  try { token = localStorage.getItem('adminToken') || ''; } catch (e) {}
+
+  const COLS = [
+    { k: 'display', t: 'שם בהזמנה', type: 'text', stick: true },
+    { k: '_send', t: 'שליחת הזמנה', type: 'action', sk: 'sent' },
+    { k: '_view', t: 'צפיה בהזמנה', type: 'preview' },
+    { k: 'sent', t: 'ההזמנה נשלחה לאחרונה', type: 'time' },
+    { k: 'viewed', t: 'ההזמנה נצפתה לאחרונה', type: 'time' },
+    { k: 'count', t: 'כמות משתתפים', type: 'count' },
+    { k: 'table', t: 'שולחן', type: 'table' },
+    { k: 'phone', t: 'מספר טלפון נייד', type: 'phone' },
+    { k: 'form', t: 'נוסח הפניה', type: 'form' },
+    { k: 'first', t: 'שם פרטי', type: 'text' },
+    { k: 'last', t: 'שם משפחה', type: 'text' },
+    { k: 'note', t: 'הערות', type: 'text' },
+    { k: '_del', t: 'מחיקה', type: 'delete' }
+  ];
+
+  async function call(action, data) {
+    const r = await api(action, Object.assign({ token }, data));
+    if (r.error === 'unauthorized') { showLogin('סיסמה שגויה'); throw new Error('unauthorized'); }
+    if (r.error === 'locked') { showLogin('יותר מדי ניסיונות שגויים. הניהול נעול זמנית, נסה שוב בעוד כרבע שעה'); throw new Error('locked'); }
+    return r;
+  }
+  function showLogin(msg) { $('#main').hidden = true; $('#login').hidden = false; $('#err').textContent = msg || ''; }
+
+  async function load() {
+    const r = await call('list');
+    if (!r.ok) { showLogin('שגיאה בטעינה'); return; }
+    guests = r.guests;
+    $('#login').hidden = true; $('#main').hidden = false;
+    buildHead();
+    render();
+  }
+
+  const replied = g => g.count !== null && g.count !== '';
+  const shownName = g => g.display || g.first;
+  const fmt = iso => iso ? new Date(iso).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(',', '') : '';
+  const localInput = iso => {
+    if (!iso) return '';
+    const d = new Date(iso), p = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  };
+  const link = g => (CONFIG.SITE_URL || new URL('index.html', location.href).href) + '?id=' + encodeURIComponent(g.id);
+  function message(g) {
+    const w = FORM_WORDS[g.form] || FORM_WORDS['יחיד'];
+    return CONFIG.messageTemplate.replace('{name}', shownName(g)).replace('{dear}', w.dear).replace('{inviteYou}', w.invite).replace('{link}', link(g));
+  }
+
+  // ---------- לשוניות ----------
+  document.querySelectorAll('.tabs [data-tab]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.tabs [data-tab]').forEach(x => x.classList.toggle('on', x === b));
+    ['contacts', 'add'].forEach(t => $('#tab-' + t).hidden = t !== b.dataset.tab);
+    if (b.dataset.tab === 'contacts') fitTable();
+  });
+
+  // ---------- טבלה: כותרות ומסננים ----------
+  function tableValues() {
+    return [...new Set(guests.map(g => String(g.table || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'he', { numeric: true }));
+  }
+
+  function filterControl(c) {
+    const o = (v, t) => '<option value="' + esc(v) + '">' + esc(t) + '</option>';
+    if (c.type === 'delete' || c.type === 'preview') return '';
+    if (c.type === 'action') return '<select data-f="sent">' + o('', 'הכל') + o('1', 'נשלח') + o('0', 'לא נשלח') + '</select>';
+    if (c.type === 'time') return '<select data-f="' + c.k + '">' + o('', 'הכל') + (c.k === 'sent' ? o('1', 'נשלח') + o('0', 'לא נשלח') : o('1', 'נצפה') + o('0', 'לא נצפה')) + '</select>';
+    if (c.type === 'count') return '<select data-f="count">' + o('', 'הכל') + o('none', 'לא הגיב') + o('zero', 'לא מגיעים') + o('some', 'מגיעים') + '</select>';
+    if (c.type === 'form') return '<select data-f="form">' + o('', 'הכל') + FORMS.map(x => o(x, x)).join('') + '</select>';
+    if (c.type === 'table') return '<select data-f="table">' + o('', 'הכל') + tableValues().map(x => o(x, x)).join('') + '</select>';
+    return '<input data-f="' + c.k + '" placeholder="סינון">';
+  }
+
+  // גובה שורת הכותרות משתנה לפי רוחב המסך, לכן שורת הסינון מוצמדת לפי הגובה האמיתי
+  function fixStickyTop() {
+    const first = document.querySelector('#tbl thead tr:first-child');
+    if (!first) return;
+    const h = first.getBoundingClientRect().height;
+    document.querySelectorAll('#tbl thead tr.filters th').forEach(t => { t.style.top = h + 'px'; });
+  }
+  window.addEventListener('resize', fixStickyTop);
+
+  // פס גלילה אופקי עליון, מסונכרן עם הטבלה ומוצמד מתחת ללשוניות (מחשב בלבד)
+  function syncTopScroll() {
+    const tb = document.querySelector('.tablebox');
+    $('#topScrollInner').style.width = tb.scrollWidth + 'px';
+    fitTable();
+    document.documentElement.style.setProperty('--tabs-h', document.querySelector('.tabs').offsetHeight + 'px');
+  }
+  // גובה הטבלה ממלא את המסך שנשאר (לפי החלק הנראה בפועל, כולל מקלדת וסרגל כתובות), עם מינימום של 320 פיקסלים
+  function fitTable() {
+    const tb = document.querySelector('.tablebox');
+    if ($('#tab-contacts').hidden) return;
+    const y = tb.getBoundingClientRect().top + window.scrollY;
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    tb.style.maxHeight = Math.max(320, vh - y - 16) + 'px';
+  }
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitTable);
+  window.addEventListener('resize', syncTopScroll);
+  $('#topScroll').addEventListener('scroll', () => { const tb = document.querySelector('.tablebox'); if (tb.scrollLeft !== $('#topScroll').scrollLeft) tb.scrollLeft = $('#topScroll').scrollLeft; });
+  document.querySelector('.tablebox').addEventListener('scroll', () => { const ts = $('#topScroll'), tb = document.querySelector('.tablebox'); if (ts.scrollLeft !== tb.scrollLeft) ts.scrollLeft = tb.scrollLeft; });
+
+  function buildHead() {
+    const cur = Object.assign({}, filt);
+    const arrow = k => sort.k === k ? (sort.asc ? ' ▲' : ' ▼') : ' ↕';
+    $('#tbl thead').innerHTML =
+      '<tr>' + COLS.map(c => {
+        if (c.type === 'delete' || c.type === 'preview') return '<th style="cursor:default">' + c.t + '</th>';
+        const k = c.sk || c.k;
+        return '<th class="' + (c.stick ? 'stick' : '') + '" data-s="' + k + '">' + c.t + '<span class="muted" style="' + (sort.k === k ? '' : 'opacity:.45') + '">' + arrow(k) + '</span></th>';
+      }).join('') + '</tr>' +
+      '<tr class="filters">' + COLS.map(c => '<th class="' + (c.stick ? 'stick' : '') + '">' + filterControl(c) + '</th>').join('') + '</tr>';
+    document.querySelectorAll('#tbl [data-f]').forEach(el => {
+      el.value = cur[el.dataset.f] || '';
+      el.addEventListener('input', () => {
+        const k = el.dataset.f;
+        filt[k] = el.value;
+        document.querySelectorAll('#tbl [data-f="' + k + '"]').forEach(o => o.value = el.value);
+        renderBody();
+      });
+    });
+    fixStickyTop();
+    document.querySelectorAll('#tbl th[data-s]').forEach(th => th.onclick = () => {
+      sort = { k: th.dataset.s, asc: sort.k === th.dataset.s ? !sort.asc : true };
+      buildHead(); renderBody();
+    });
+  }
+
+  $('#clearF').onclick = () => { filt = {}; buildHead(); renderBody(); };
+
+  function passes(g) {
+    for (const c of COLS) {
+      const v = (filt[c.k] || '').trim();
+      if (!v) continue;
+      if (c.type === 'time') { if ((v === '1') !== !!g[c.k]) return false; }
+      else if (c.type === 'count') {
+        if (v === 'none' && replied(g)) return false;
+        if (v === 'zero' && !(replied(g) && g.count === 0)) return false;
+        if (v === 'some' && !(replied(g) && g.count > 0)) return false;
+      }
+      else if (c.type === 'form' || c.type === 'table') { if (String(g[c.k]) !== v) return false; }
+      else if (!String(c.k === 'display' ? shownName(g) : (g[c.k] == null ? '' : g[c.k])).includes(v)) return false;
+    }
+    return true;
+  }
+
+  function sortKey(g) {
+    const t = COLS.find(c => c.k === sort.k).type;
+    if (t === 'count') return replied(g) ? g.count : null;
+    if (t === 'time') return g[sort.k] || null;
+    if (sort.k === 'display') return shownName(g) || null;
+    return String(g[sort.k] == null ? '' : g[sort.k]) || null;
+  }
+
+  function render() {
+    const total = guests.length, sent = guests.filter(g => g.sent).length, viewed = guests.filter(g => g.viewed).length;
+    const rep = guests.filter(replied).length, coming = guests.reduce((s, g) => s + (g.count > 0 ? g.count : 0), 0);
+    $('#stats').innerHTML = [['מוזמנים', total], ['הזמנות שנשלחו', sent], ['הזמנות שנצפו', viewed], ['תגובות', rep], ['סה״כ משתתפים', coming]].map(x => '<div><b>' + x[1] + '</b>' + x[0] + '</div>').join('');
+    renderBody();
+  }
+
+  function renderBody() {
+    const list = guests.filter(passes).sort((a, b) => {
+      const x = sortKey(a), y = sortKey(b), d = sort.asc ? 1 : -1;
+      if (x === null) return y === null ? 0 : 1;
+      if (y === null) return -1;
+      return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'he', { numeric: true })) * d;
+    });
+    $('#shown').textContent = list.length === guests.length ? '' : 'מוצגים ' + list.length + ' מתוך ' + guests.length;
+    const body = $('#tbl tbody');
+    body.innerHTML = '';
+    list.forEach(g => {
+      const tr = document.createElement('tr');
+      COLS.forEach(c => tr.append(cell(g, c)));
+      body.append(tr);
+    });
+    if (!list.length) body.innerHTML = '<tr><td colspan="' + COLS.length + '" class="muted" style="text-align:center">אין תוצאות</td></tr>';
+    syncTopScroll();
+  }
+
+  function display(g, c) {
+    if (c.type === 'time') return g[c.k] ? '<span dir="ltr">' + fmt(g[c.k]).replace(' ', '<span class="gap"></span>') + '</span>' : '<span class="muted">—</span>';
+    if (c.type === 'count') return replied(g) ? String(g.count) : '<span class="muted">—</span>';
+    if (c.type === 'phone') return '<span dir="ltr">' + esc(g.phone) + '</span>';
+    if (c.k === 'display' && !g.display) return '<span class="muted">' + esc(g.first) + '</span>';
+    return g[c.k] === '' || g[c.k] == null ? '<span class="muted">—</span>' : esc(g[c.k]);
+  }
+
+  function cell(g, c) {
+    const td = document.createElement('td');
+    td.className = (c.stick ? 'stick ' : '') + (c.type === 'action' || c.type === 'delete' || c.type === 'preview' ? '' : 'cell');
+    const svg = p => '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+    if (c.type === 'delete') {
+      td.style.textAlign = 'center';
+      td.innerHTML = '<button class="del" aria-label="מחיקת מוזמן" title="מחיקת מוזמן">' + svg('<path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>') + '</button>';
+      td.firstChild.onclick = () => openDelete(g);
+      return td;
+    }
+    if (c.type === 'preview') {
+      td.style.textAlign = 'center';
+      td.innerHTML = '<button class="view" aria-label="צפיה בהזמנה" title="צפיה בהזמנה (לא נרשמת כצפיה)">' + svg('<path d="M10 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M21 12c-2.4 4-5.4 6-9 6s-6.6-2-9-6c2.4-4 5.4-6 9-6s6.6 2 9 6"/>') + '</button>';
+      td.firstChild.onclick = () => openView(g);
+      return td;
+    }
+    if (c.type === 'action') {
+      td.innerHTML = '<button class="wa">' + (g.sent ? 'שלח שוב' : 'שלח') + '</button>';
+      td.firstChild.onclick = () => send(g);
+      return td;
+    }
+    td.innerHTML = display(g, c);
+    td.onclick = () => openEdit(g, c);
+    return td;
+  }
+
+  // ---------- דיאלוג עריכה ----------
+  let edit = null;
+  function closeEdit() { edit = null; $('#editDlg').hidden = true; }
+  $('#edCancel').onclick = closeEdit;
+  $('#edSave').onclick = () => edit && edit.save();
+  document.addEventListener('keydown', e => {
+    if (!edit) return;
+    if (e.key === 'Escape') closeEdit();
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') edit.save();
+  });
+
+  function openEdit(g, c) {
+    let input;
+    if (c.type === 'form') { input = document.createElement('select'); FORMS.forEach(x => { const o = new Option(x, x); o.selected = x === g.form; input.add(o); }); }
+    else if (c.type === 'table') { input = document.createElement('input'); input.value = g.table || ''; }
+    else if (c.type === 'time') { input = document.createElement('input'); input.type = 'datetime-local'; input.step = 1; input.value = localInput(g[c.k]); }
+    else if (c.type === 'count') { input = document.createElement('input'); input.type = 'number'; input.min = 0; input.max = 50; input.placeholder = 'ריק = לא הגיב'; input.value = replied(g) ? g.count : ''; }
+    else { input = document.createElement('input'); input.value = g[c.k] == null ? '' : g[c.k]; if (c.type === 'phone') input.type = 'tel'; }
+    input.style.width = '100%';
+    const msg = t => $('#edMsg').textContent = t;
+    $('#edTitle').textContent = c.t + ' · ' + shownName(g);
+    $('#edField').innerHTML = '';
+    $('#edField').append(input);
+    if (c.type === 'time') {
+      const clr = document.createElement('button');
+      clr.textContent = 'ניקוי התא'; clr.style.marginTop = '8px';
+      clr.onclick = () => { input.value = ''; msg('התא ינוקה אחרי לחיצה על שמירה'); };
+      $('#edField').append(clr);
+    }
+    msg('');
+    $('#edSave').disabled = false;
+    edit = {
+      save: async () => {
+        const v = input.value.trim(), now = new Date().toISOString(), f = {};
+        if (c.type === 'count') {
+          const n = v === '' ? null : Number(v);
+          if (n !== null && (!Number.isInteger(n) || n < 0 || n > 50)) { msg('כמות לא חוקית'); return; }
+          f.count = n;
+        } else if (c.type === 'time') {
+          const d = v ? new Date(v) : null;
+          if (d && isNaN(d)) { msg('תאריך לא חוקי'); return; }
+          f[c.k] = d ? d.toISOString() : '';
+        } else if (c.type === 'phone') {
+          if (!digits9(v)) { msg('טלפון לא תקין'); return; }
+          if (v === g.phone) { closeEdit(); return; }
+          if (!confirm('שינוי הטלפון יוצר קישור חדש. הקישור הישן יפסיק לעבוד. להמשיך?')) return;
+          f.phone = v;
+        } else {
+          if (c.k === 'first' && !v) { msg('לא יכול להיות ריק'); return; }
+          f[c.k] = v;
+        }
+        $('#edSave').disabled = true; msg('שומר…');
+        let r;
+        try { r = await call('update', { id: g.id, fields: f }); } catch (x) { return; }
+        if (!r.ok) { msg(r.error === 'duplicate' ? 'הטלפון כבר קיים' : 'שגיאה בשמירה'); $('#edSave').disabled = false; return; }
+        closeEdit();
+        if (f.phone) { await load(); } else { Object.assign(g, f); buildHead(); render(); }
+      }
+    };
+    $('#editDlg').hidden = false;
+    setTimeout(() => input.focus(), 0);
+  }
+
+  // ---------- צפיה בהזמנה (תצוגה מקדימה על כל המסך, בלי רישום צפיה) ----------
+  function openView(g) {
+    // iframe חדש בכל פתיחה: טעינה ראשונית שלו לא מוסיפה רשומה להיסטוריה, ולכן Esc וחזרה סוגרים בלחיצה אחת
+    const f = document.createElement('iframe');
+    f.id = 'viewFrame'; f.title = 'תצוגה מקדימה של ההזמנה';
+    f.style.cssText = 'width:100%;height:100%;border:0;display:block';
+    f.src = link(g) + '&preview=1';
+    $('#viewBox').replaceChildren(f);
+    $('#viewDlg').hidden = false;
+    document.body.style.overflow = 'hidden';
+    history.pushState({ view: 1 }, '');
+  }
+  function hideView() {
+    $('#viewDlg').hidden = true;
+    $('#viewBox').replaceChildren();
+    document.body.style.overflow = '';
+  }
+  function closeView() {
+    if (history.state && history.state.view) history.back(); else hideView();
+  }
+  window.addEventListener('popstate', () => { if (!$('#viewDlg').hidden) hideView(); });
+  $('#viewClose').onclick = closeView;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#viewDlg').hidden) closeView(); });
+
+  // ---------- מחיקת מוזמן ----------
+  let delTarget = null;
+  function closeDelete() { delTarget = null; $('#delDlg').hidden = true; }
+  function openDelete(g) {
+    delTarget = g;
+    const W = {
+      'יחיד': { to: 'אליו', his: 'שלו', who: 'הוא כבר הגיב' },
+      'יחידה': { to: 'אליה', his: 'שלה', who: 'היא כבר הגיבה' },
+      'רבים': { to: 'אליהם', his: 'שלהם', who: 'הם כבר הגיבו' },
+      'רבות': { to: 'אליהן', his: 'שלהן', who: 'הן כבר הגיבו' }
+    }[g.form] || { to: 'אליו', his: 'שלו', who: 'הוא כבר הגיב' };
+    const facts = [];
+    if (g.sent) facts.push('נשלחה ' + W.to + ' הזמנה ב-' + fmt(g.sent) + '.');
+    if (replied(g)) facts.push(W.who + ' (כמות משתתפים: ' + g.count + ').');
+    $('#delText').innerHTML = 'למחוק את <b>' + esc(shownName(g)) + '</b>?';
+    $('#delFacts').textContent = facts.join(' ');
+    $('#delFacts').hidden = !facts.length;
+    $('#delInfo').textContent = 'יימחקו גם הצפיה והתגובה ' + W.his + ', והקישור שנשלח ' + W.to + ' יפסיק לעבוד. הפעולה בלתי הפיכה.';
+    $('#delMsg').textContent = '';
+    $('#delOk').textContent = 'מחיקה';
+    $('#delOk').dataset.mode = 'delete';
+    $('#delOk').disabled = false;
+    $('#delDlg').hidden = false;
+  }
+  $('#delCancel').onclick = closeDelete;
+  $('#delOk').onclick = async () => {
+    if (!delTarget) return;
+    if ($('#delOk').dataset.mode === 'refresh') { closeDelete(); await load(); return; }
+    $('#delOk').disabled = true; $('#delMsg').textContent = 'מוחק…';
+    let r;
+    try { r = await call('delete', { guest: delTarget }); } catch (x) { return; }
+    if (!r.ok) {
+      $('#delMsg').textContent = r.error === 'not_found' ? 'השורה לא קיימת בבסיס הנתונים, נסה לרענן' : 'שגיאה במחיקה';
+      $('#delOk').textContent = 'רענון'; $('#delOk').dataset.mode = 'refresh'; $('#delOk').disabled = false;
+      return;
+    }
+    closeDelete();
+    await load();
+  };
+
+  // ---------- שליחה בוואטסאפ ----------
+  function send(g) {
+    if (!digits9(g.phone)) { alert('מספר הטלפון לא תקין'); return; }
+    pending = g;
+    window.open('https://wa.me/' + waNumber(g.phone) + '?text=' + encodeURIComponent(message(g)), '_blank', 'noopener');
+  }
+  function askSent() {
+    if (!pending) return;
+    $('#confirmText').textContent = 'האם שלחת את ההזמנה ל-' + shownName(pending) + '?';
+    $('#confirm').hidden = false;
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) askSent(); });
+  $('#yes').onclick = async () => {
+    const g = pending; pending = null; $('#confirm').hidden = true;
+    const r = await call('setSent', { id: g.id, sent: true });
+    if (r.ok) { g.sent = new Date().toISOString(); render(); }
+  };
+  $('#no').onclick = () => { pending = null; $('#confirm').hidden = true; };
+
+  // ---------- הוספה ----------
+  ['aFirst', 'aPhone', 'aForm'].forEach(i => $('#' + i).addEventListener('input', () => { $('#' + i).style.borderColor = ''; }));
+  const addMsg = (t, ok) => { const m = $('#aMsg'); m.textContent = t; m.style.color = ok ? 'var(--ok)' : 'var(--bad)'; m.style.fontWeight = 'bold'; };
+  $('#aSave').onclick = async () => {
+    const x = { first: $('#aFirst').value.trim(), last: $('#aLast').value.trim(), display: $('#aDisplay').value.trim(), phone: $('#aPhone').value.trim(), form: $('#aForm').value, table: $('#aTable').value.trim() };
+    const bad = [];
+    if (!x.first) bad.push('aFirst');
+    if (!digits9(x.phone)) bad.push('aPhone');
+    if (!x.form) bad.push('aForm');
+    ['aFirst', 'aPhone', 'aForm'].forEach(i => $('#' + i).style.borderColor = bad.includes(i) ? 'var(--bad)' : '');
+    if (bad.length) {
+      const onlyBadPhone = bad.length === 1 && bad[0] === 'aPhone' && x.phone;
+      addMsg(onlyBadPhone ? 'טלפון לא תקין' : bad.length > 1 ? '* שדות חובה' : '* שדה חובה', false);
+      return;
+    }
+    const r = await call('add', { guests: [x] });
+    if (r.duplicates && r.duplicates.length) { addMsg('הטלפון כבר קיים', false); return; }
+    ['aFirst', 'aLast', 'aDisplay', 'aPhone', 'aTable', 'aForm'].forEach(i => $('#' + i).value = '');
+    addMsg('נוסף ✔', true);
+    await load();
+  };
+
+  // אנשי קשר מהטלפון: Chrome באנדרואיד בלבד
+  if ('contacts' in navigator && 'ContactsManager' in window) {
+    $('#contactsBox').hidden = false;
+    $('#contactsBtn').onclick = async () => {
+      try {
+        const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+        const rows = picked.filter(c => c.tel && c.tel[0]).map(c => {
+          const parts = String((c.name && c.name[0]) || '').trim().split(/\s+/);
+          return { first: parts[0] || '', last: parts.slice(1).join(' '), phone: c.tel[0] };
+        });
+        if (!rows.length) return;
+        $('#stageList').innerHTML = '';
+        rows.forEach(r => {
+          const d = document.createElement('div'); d.className = 'stage'; d.dataset.phone = r.phone;
+          d.innerHTML = '<input value="' + esc(r.first) + '"><input value="' + esc(r.last) + '"><select><option value=""></option><option>יחיד</option><option>יחידה</option><option>רבים</option><option>רבות</option></select>';
+          $('#stageList').append(d);
+        });
+        $('#stageBox').hidden = false;
+      } catch (e) {}
+    };
+    $('#stageCancel').onclick = () => { $('#stageBox').hidden = true; };
+    $('#stageSave').onclick = async () => {
+      const list = [...document.querySelectorAll('#stageList .stage')].map(d => {
+        const i = d.querySelectorAll('input');
+        return { first: i[0].value.trim(), last: i[1].value.trim(), form: d.querySelector('select').value, phone: d.dataset.phone };
+      }).filter(x => x.first);
+      if (list.some(x => !x.form)) { $('#stageMsg').textContent = 'חובה לבחור נוסח הפניה לכל מוזמן'; return; }
+      const r = await call('add', { guests: list });
+      $('#stageMsg').textContent = 'נוספו ' + r.added + (r.duplicates && r.duplicates.length ? ', כפולים: ' + r.duplicates.join(', ') : '');
+      if (r.added) { await load(); $('#stageBox').hidden = true; }
+    };
+  } else {
+    $('#noContacts').hidden = false;
+  }
+
+  $('#enter').onclick = async () => {
+    token = $('#tok').value.trim();
+    try { localStorage.setItem('adminToken', token); } catch (e) {}
+    try { await load(); } catch (e) {}
+  };
+  $('#refresh').onclick = load;
+
+  if (!CONFIG.API_URL) token = 'demo';
+  if (token) load().catch(() => {}); else showLogin('');
+</script>
+</body>
+</html>

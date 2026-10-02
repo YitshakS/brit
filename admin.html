@@ -484,10 +484,10 @@
     const facts = [];
     if (g.sent) facts.push('נשלחה ' + W.to + ' הזמנה ב-' + fmt(g.sent) + '.');
     if (replied(g)) facts.push(W.who + ' (כמות משתתפים: ' + g.count + ').');
-    $('#delText').innerHTML = 'למחוק את <b>' + esc(shownName(g)) + '</b>?';
+    $('#delText').innerHTML = 'למחוק ממאגר הנתונים את <b>' + esc(shownName(g)) + '</b>?';
     $('#delFacts').textContent = facts.join(' ');
     $('#delFacts').hidden = !facts.length;
-    $('#delInfo').textContent = 'יימחקו גם הצפיה והתגובה ' + W.his + ', והקישור שנשלח ' + W.to + ' יפסיק לעבוד. הפעולה בלתי הפיכה.';
+    $('#delInfo').textContent = 'יימחקו גם הצפיה והתגובה ' + W.his + ', והקישור שנשלח ' + W.to + ' יפסיק לעבוד. הפעולה בלתי הפיכה!';
     $('#delMsg').textContent = '';
     $('#delOk').textContent = 'מחיקה';
     $('#delOk').dataset.mode = 'delete';

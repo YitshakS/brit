@@ -104,14 +104,9 @@
           <div><label>נוסח הפניה <span class="req">*</span></label><select id="aForm"><option value=""></option><option>יחיד</option><option>יחידה</option><option>רבים</option><option>רבות</option></select></div>
           <div><label>שולחן</label><input id="aTable"></div>
         </div>
-        <div class="row" style="justify-content:flex-end;margin-top:41px"><span id="aMsg"></span><button class="primary act" id="aSave">הוספת מוזמן</button></div>
-      </div>
-      <div class="panel" id="contactsBox" hidden>
-        <div class="row"><button id="contactsBtn">הוספת מוזמן מרשימת אנשי קשר</button><span id="stageDone"></span></div>
-        <div id="stageBox" hidden style="margin-top:10px">
-          <div id="stageList"></div>
-          <div class="row" style="justify-content:flex-end"><span id="stageMsg" class="muted"></span><button class="act" id="stageCancel">ביטול</button><button class="primary act" id="stageSave">הוספת כולם</button></div>
-        </div>
+        <div class="row" id="contactsBox" hidden style="margin-bottom:10px"><button id="contactsBtn">הוספת מוזמן מרשימת אנשי קשר</button></div>
+        <div id="stageList"></div>
+        <div class="row" style="justify-content:flex-end;margin-top:41px"><span id="aMsg"></span><button class="act" id="aCancel">ביטול</button><button class="primary act" id="aSave">הוספה</button></div>
       </div>
       <p class="muted" id="noContacts" hidden>הוספת מוזמן מרשימת אנשי קשר זמינה רק באנדרואיד ב-Chrome.</p>
     </section>
@@ -519,23 +514,52 @@
   $('#no').onclick = () => { pending = null; $('#confirm').hidden = true; };
 
   // ---------- הוספה ----------
-  ['aFirst', 'aPhone', 'aForm'].forEach(i => $('#' + i).addEventListener('input', () => { $('#' + i).style.borderColor = ''; }));
   const showMsg = (sel, t, ok) => { const m = $(sel); m.textContent = t; m.style.color = ok ? 'var(--ok)' : 'var(--bad)'; m.style.fontWeight = 'bold'; };
   const addMsg = (t, ok) => showMsg('#aMsg', t, ok);
   // ולידציה משותפת לשני טפסי ההוספה: מחזירה את רשימת השדות השגויים וההודעה המתאימה
   const checkGuest = x => { const bad = []; if (!x.first) bad.push('first'); if (!digits9(x.phone)) bad.push('phone'); if (!x.form) bad.push('form'); return bad; };
   const validationMsg = (bad, phonesFilled) => bad.every(f => f === 'phone') && phonesFilled ? 'טלפון לא תקין' : bad.length > 1 ? '* שדות חובה' : '* שדה חובה';
+  // טופס הוספה אחד: הטופס הידני + כרטיסי אנשי קשר. כפתור הוספה אחד, כפתור ביטול אחד ושורת הודעות אחת
+  const MANUAL = { first: '#aFirst', last: '#aLast', display: '#aDisplay', phone: '#aPhone', form: '#aForm', table: '#aTable' };
+  const clearManual = () => Object.values(MANUAL).forEach(sel => { $(sel).value = ''; $(sel).style.borderColor = ''; });
+  const readManual = () => ({ first: $(MANUAL.first).value.trim(), last: $(MANUAL.last).value.trim(), display: $(MANUAL.display).value.trim(), phone: $(MANUAL.phone).value.trim(), form: $(MANUAL.form).value, table: $(MANUAL.table).value.trim() });
+  const cards = () => [...document.querySelectorAll('#stageList .stage')];
+  const readCard = d => { const i = d.querySelectorAll('input'); return { first: i[0].value.trim(), last: i[1].value.trim(), form: d.querySelector('select').value, phone: d.dataset.phone }; };
+
+  $('#aCancel').onclick = () => { clearManual(); $('#stageList').innerHTML = ''; $('#aMsg').textContent = ''; };
+  $('#stageList').addEventListener('input', e => { e.target.style.borderColor = ''; });
+  $('#stageList').addEventListener('change', e => { e.target.style.borderColor = ''; });
+
   $('#aSave').onclick = async () => {
-    const x = { first: $('#aFirst').value.trim(), last: $('#aLast').value.trim(), display: $('#aDisplay').value.trim(), phone: $('#aPhone').value.trim(), form: $('#aForm').value, table: $('#aTable').value.trim() };
-    const bad = checkGuest(x);
-    ['first', 'phone', 'form'].forEach(f => $('#a' + f[0].toUpperCase() + f.slice(1)).style.borderColor = bad.includes(f) ? 'var(--bad)' : '');
-    if (bad.length) { addMsg(validationMsg(bad, !!x.phone), false); return; }
-    const r = await call('add', { guests: [x] });
-    if (r.duplicates && r.duplicates.length) { addMsg('הטלפון כבר קיים', false); return; }
-    ['aFirst', 'aLast', 'aDisplay', 'aPhone', 'aTable', 'aForm'].forEach(i => $('#' + i).value = '');
-    addMsg('נוסף ✔', true);
+    const m = readManual(), hasCards = cards().length > 0;
+    const manualUsed = !hasCards || Object.values(m).some(v => v);
+    const allBad = [], list = [];
+    let phonesFilled = true;
+    if (manualUsed) {
+      const bad = checkGuest(m);
+      ['first', 'phone', 'form'].forEach(f => $(MANUAL[f]).style.borderColor = bad.includes(f) ? 'var(--bad)' : '');
+      allBad.push(...bad); if (!m.phone) phonesFilled = false; list.push(m);
+    }
+    if (!manualUsed) Object.values(MANUAL).forEach(sel => $(sel).style.borderColor = '');
+    cards().forEach(d => {
+      const x = readCard(d), bad = checkGuest(x), ph = d.querySelector('.ph');
+      d.querySelectorAll('input')[0].style.borderColor = bad.includes('first') ? 'var(--bad)' : '';
+      d.querySelector('select').style.borderColor = bad.includes('form') ? 'var(--bad)' : '';
+      ph.style.color = bad.includes('phone') ? 'var(--bad)' : '';
+      ph.style.fontWeight = bad.includes('phone') ? 'bold' : '';
+      allBad.push(...bad); list.push(x);
+    });
+    if (allBad.length) { addMsg(validationMsg(allBad, phonesFilled), false); return; }
+    const r = await call('add', { guests: list });
+    const dups = r.duplicates || [];
+    const dupMsg = list.length === 1 ? 'הטלפון כבר קיים' : (dups.length === 1 ? 'הטלפון כבר קיים: ' : 'הטלפונים כבר קיימים: ') + dups.join(', ');
+    if (!r.added) { addMsg(dupMsg, false); return; }
+    clearManual(); $('#stageList').innerHTML = '';
     await load();
+    if (dups.length) addMsg('נוספו ' + r.added + ' ✔. ' + dupMsg, false);
+    else addMsg(r.added === 1 ? 'נוסף ✔' : 'נוספו ' + r.added + ' ✔', true);
   };
+  ['aFirst', 'aPhone', 'aForm'].forEach(i => $('#' + i).addEventListener('input', () => { $('#' + i).style.borderColor = ''; }));
 
   // אנשי קשר מהטלפון: Chrome באנדרואיד בלבד
   if ('contacts' in navigator && 'ContactsManager' in window) {
@@ -548,8 +572,7 @@
           return { first: parts[0] || '', last: parts.slice(1).join(' '), phone: c.tel[0] };
         });
         if (!rows.length) return;
-        $('#stageList').innerHTML = '';
-        $('#stageDone').textContent = ''; $('#stageMsg').textContent = '';
+        $('#stageList').innerHTML = ''; $('#aMsg').textContent = '';
         rows.forEach(r => {
           const d = document.createElement('div'); d.className = 'stage'; d.dataset.phone = r.phone;
           d.innerHTML = '<div class="ph">טלפון: <span dir="ltr">' + esc(r.phone) + '</span></div>' +
@@ -558,40 +581,11 @@
             '<div><label>נוסח הפניה <span class="req">*</span></label><select><option value=""></option><option>יחיד</option><option>יחידה</option><option>רבים</option><option>רבות</option></select></div>';
           $('#stageList').append(d);
         });
-        $('#stageBox').hidden = false;
       } catch (e) {}
-    };
-    $('#stageCancel').onclick = () => { $('#stageBox').hidden = true; $('#stageMsg').textContent = ''; };
-    ['input', 'change'].forEach(ev => $('#stageList').addEventListener(ev, e => { e.target.style.borderColor = ''; }));
-    $('#stageSave').onclick = async () => {
-      // אותה ולידציה כמו בטופס ההוספה הרגיל: שם פרטי, טלפון תקין ונוסח הפניה, עם סימון אדום והודעה
-      const allBad = [];
-      const list = [...document.querySelectorAll('#stageList .stage')].map(d => {
-        const i = d.querySelectorAll('input'), s = d.querySelector('select'), ph = d.querySelector('.ph');
-        const x = { first: i[0].value.trim(), last: i[1].value.trim(), form: s.value, phone: d.dataset.phone };
-        const bad = checkGuest(x);
-        i[0].style.borderColor = bad.includes('first') ? 'var(--bad)' : '';
-        s.style.borderColor = bad.includes('form') ? 'var(--bad)' : '';
-        ph.style.color = bad.includes('phone') ? 'var(--bad)' : '';
-        ph.style.fontWeight = bad.includes('phone') ? 'bold' : '';
-        allBad.push(...bad);
-        return x;
-      });
-      if (allBad.length) { showMsg('#stageMsg', validationMsg(allBad, true), false); return; }
-      const r = await call('add', { guests: list });
-      const dups = r.duplicates || [];
-      const dupMsg = (dups.length === 1 ? 'הטלפון כבר קיים: ' : 'הטלפונים כבר קיימים: ') + dups.join(', ');
-      if (!r.added) { showMsg('#stageMsg', dupMsg, false); return; }
-      await load();
-      $('#stageBox').hidden = true;
-      $('#stageMsg').textContent = '';
-      if (dups.length) showMsg('#stageDone', 'נוספו ' + r.added + ' ✔. ' + dupMsg, false);
-      else showMsg('#stageDone', r.added === 1 ? 'נוסף ✔' : 'נוספו ' + r.added + ' ✔', true);
     };
   } else {
     $('#noContacts').hidden = false;
   }
-
   $('#enter').onclick = async () => {
     token = $('#tok').value.trim();
     try { localStorage.setItem('adminToken', token); } catch (e) {}

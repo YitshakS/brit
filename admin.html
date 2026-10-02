@@ -31,6 +31,9 @@
     th.stick, td.stick { position: sticky; inset-inline-start: 0; z-index: 2; border-inline-end: 2px solid var(--line); }
     thead th.stick, thead tr.filters th.stick { z-index: 5; }
     td.cell { cursor: pointer; min-width: 70px; }
+    /* העמודה הצמודה: הרוחב נקבע לפי השם הארוך ביותר. הכותרת והסינון לא מרחיבים אותה (הכותרת עוברת שורה אם צריך) */
+    th.stick .hd { display: block; width: 0; min-width: 100%; white-space: normal; }
+    thead tr.filters th.stick input { width: 0; min-width: 100%; }
     .clip { display: inline-block; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
     @media (min-width: 700px) { .clip { max-width: 16em; } }
     td.cell:hover { background: #f3f7fb; }
@@ -240,6 +243,7 @@
   function syncTopScroll() {
     const tb = document.querySelector('.tablebox');
     $('#topScrollInner').style.width = tb.scrollWidth + 'px';
+    fixStickyTop(); // גובה הכותרת תלוי ברוחב העמודות, שנקבע רק אחרי מילוי השורות
     fitTable();
     document.documentElement.style.setProperty('--tabs-h', document.querySelector('.tabs').offsetHeight + 'px');
   }
@@ -263,7 +267,8 @@
       '<tr>' + COLS.map(c => {
         if (c.type === 'delete' || c.type === 'preview') return '<th style="cursor:default">' + c.t + '</th>';
         const k = c.sk || c.k;
-        return '<th class="' + (c.stick ? 'stick' : '') + '" data-s="' + k + '">' + c.t + '<span class="muted" style="' + (sort.k === k ? '' : 'opacity:.45') + '">' + arrow(k) + '</span></th>';
+        const title = c.t + '<span class="muted" style="' + (sort.k === k ? '' : 'opacity:.45') + '">' + arrow(k) + '</span>';
+        return '<th class="' + (c.stick ? 'stick' : '') + '" data-s="' + k + '">' + (c.stick ? '<span class="hd">' + title + '</span>' : title) + '</th>';
       }).join('') + '</tr>' +
       '<tr class="filters">' + COLS.map(c => '<th class="' + (c.stick ? 'stick' : '') + '">' + filterControl(c) + '</th>').join('') + '</tr>';
     document.querySelectorAll('#tbl [data-f]').forEach(el => {

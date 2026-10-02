@@ -106,9 +106,8 @@
           <div><label>נוסח הפניה <span class="req">*</span></label><select id="aForm"><option value=""></option><option>יחיד</option><option>יחידה</option><option>רבים</option><option>רבות</option></select></div>
           <div><label>שולחן</label><input id="aTable"></div>
         </div>
-        <div class="row" id="contactsBox" hidden style="margin-bottom:10px"><button id="contactsBtn">הוספת מוזמנים מרשימת אנשי קשר</button></div>
         <div id="stageList"></div>
-        <div class="row" style="justify-content:flex-end;margin-top:41px"><span id="aMsg"></span><button class="act" id="aCancel">ביטול</button><button class="primary act" id="aSave">הוספה</button></div>
+        <div class="row" style="justify-content:flex-end;margin-top:41px"><span id="aMsg"></span><button class="act" id="contactsBtn" hidden>הוספת מוזמנים מרשימת אנשי קשר</button><button class="act" id="aCancel">ביטול</button><button class="primary act" id="aSave">הוספה</button></div>
       </div>
       <p class="muted" id="noContacts" hidden>הוספת מוזמנים מרשימת אנשי קשר זמינה רק באנדרואיד ב-Chrome.</p>
     </section>
@@ -565,7 +564,7 @@
 
   // אנשי קשר מהטלפון: Chrome באנדרואיד בלבד
   if ('contacts' in navigator && 'ContactsManager' in window) {
-    $('#contactsBox').hidden = false;
+    $('#contactsBtn').hidden = false;
     $('#contactsBtn').onclick = async () => {
       try {
         const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });

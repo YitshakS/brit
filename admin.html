@@ -101,7 +101,7 @@
 
     <section id="tab-contacts">
       <div class="panel stats" id="stats"></div>
-      <div class="row" style="margin-bottom:8px"><button id="clearF">ניקוי מסננים</button><span class="muted" id="shown"></span></div>
+      <div class="row" style="margin-bottom:8px"><button id="clearF">איפוס מיון ומסננים</button><span class="muted" id="shown"></span></div>
       <div class="topscroll" id="topScroll"><div id="topScrollInner"></div></div>
       <div class="tablebox"><table id="tbl"><thead></thead><tbody></tbody></table></div>
     </section>
@@ -293,7 +293,7 @@
     });
   }
 
-  $('#clearF').onclick = () => { filt = {}; buildHead(); renderBody(); };
+  $('#clearF').onclick = () => { filt = {}; sort = { k: 'display', asc: true }; buildHead(); renderBody(); };
 
   function passes(g) {
     for (const c of COLS) {

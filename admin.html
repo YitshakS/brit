@@ -49,6 +49,7 @@
     [hidden] { display: none !important; }
     .stage { margin-bottom: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
     button.act { padding: .55em 1.6em; }
+    #refresh.busy { animation: spin .8s linear infinite; pointer-events: none; }
     #contactsBtn { background: #dcebf8; border-color: #a9c9e6; color: var(--accent-dark); font-weight: bold; transition: background-color .3s; }
     #contactsBtn:hover { background: #c6dff3; }
     #err { color: var(--bad); font-size: .9rem; }
@@ -70,6 +71,8 @@
 </head>
 <body>
 <div class="wrap">
+
+  <div id="boot" class="panel loading" role="status" aria-live="polite"><div class="spin"></div><p>טוען נתונים…</p></div>
 
   <div id="login" class="panel" hidden>
     <h1 style="font-size:1.4rem">ניהול הזמנות</h1>
@@ -167,15 +170,22 @@
     if (r.error === 'locked') { showLogin('יותר מדי ניסיונות שגויים. הניהול נעול זמנית, נסה שוב בעוד כרבע שעה'); throw new Error('locked'); }
     return r;
   }
-  function showLogin(msg) { $('#main').hidden = true; $('#login').hidden = false; $('#err').textContent = msg || ''; }
+  function showLogin(msg) { $('#boot').hidden = true; $('#main').hidden = true; $('#login').hidden = false; $('#err').textContent = msg || ''; }
 
+  // בזמן טעינה מהגיליון: ספינר במסך הראשון, וכפתור הרענון מסתובב בטעינות הבאות
   async function load() {
-    const r = await call('list');
-    if (!r.ok) { showLogin('שגיאה בטעינה'); return; }
-    guests = r.guests;
-    $('#login').hidden = true; $('#main').hidden = false;
-    buildHead();
-    render();
+    $('#refresh').classList.add('busy');
+    try {
+      const r = await call('list');
+      if (!r.ok) { showLogin('שגיאה בטעינה'); return; }
+      guests = r.guests;
+      $('#login').hidden = true; $('#main').hidden = false;
+      buildHead();
+      render();
+    } finally {
+      $('#boot').hidden = true;
+      $('#refresh').classList.remove('busy');
+    }
   }
 
   const replied = g => g.count !== null && g.count !== '';
@@ -574,6 +584,7 @@
   $('#enter').onclick = async () => {
     token = $('#tok').value.trim();
     try { localStorage.setItem('adminToken', token); } catch (e) {}
+    $('#login').hidden = true; $('#boot').hidden = false;
     try { await load(); } catch (e) {}
   };
   $('#refresh').onclick = load;

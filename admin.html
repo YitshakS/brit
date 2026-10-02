@@ -48,9 +48,7 @@
     .modal { background: #fff; border-radius: 14px; padding: 18px; width: min(90vw, 380px); text-align: center; }
     [hidden] { display: none !important; }
     .stage { margin-bottom: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
-    button.act { padding: .55em 1.6em; }
-    #refresh.busy { animation: spin .8s linear infinite; pointer-events: none; }
-    #contactsBtn { background: #dcebf8; border-color: #a9c9e6; color: var(--accent-dark); font-weight: bold; transition: background-color .3s; }
+    button.act { padding: .55em 1.6em; }    #contactsBtn { background: #dcebf8; border-color: #a9c9e6; color: var(--accent-dark); font-weight: bold; transition: background-color .3s; }
     #contactsBtn:hover { background: #c6dff3; }
     #err { color: var(--bad); font-size: .9rem; }
     .req { color: var(--bad); }
@@ -172,9 +170,9 @@
   }
   function showLogin(msg) { $('#boot').hidden = true; $('#main').hidden = true; $('#login').hidden = false; $('#err').textContent = msg || ''; }
 
-  // בזמן טעינה מהגיליון: ספינר במסך הראשון, וכפתור הרענון מסתובב בטעינות הבאות
-  async function load() {
-    $('#refresh').classList.add('busy');
+  // בזמן טעינה מהגיליון: ספינר ו"טוען נתונים…" במסך הראשון וגם בלחיצה על רענון (full)
+  async function load(full) {
+    if (full === true) { $('#main').hidden = true; $('#boot').hidden = false; }
     try {
       const r = await call('list');
       if (!r.ok) { showLogin('שגיאה בטעינה'); return; }
@@ -184,7 +182,6 @@
       render();
     } finally {
       $('#boot').hidden = true;
-      $('#refresh').classList.remove('busy');
     }
   }
 
@@ -587,7 +584,7 @@
     $('#login').hidden = true; $('#boot').hidden = false;
     try { await load(); } catch (e) {}
   };
-  $('#refresh').onclick = load;
+  $('#refresh').onclick = () => load(true).catch(() => {});
 
   if (!CONFIG.API_URL) token = 'demo';
   if (token) load().catch(() => {}); else showLogin('');

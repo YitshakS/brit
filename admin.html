@@ -432,8 +432,11 @@
           f[c.k] = v;
         }
         $('#edSave').disabled = true; msg('שומר…');
+        $('#edSave').innerHTML = '<span class="spin sm"></span>שמירה';
+        const done = () => { $('#edSave').textContent = 'שמירה'; };
         let r;
-        try { r = await call('update', { id: g.id, fields: f }); } catch (x) { return; }
+        try { r = await call('update', { id: g.id, fields: f }); } catch (x) { done(); return; }
+        done();
         if (!r.ok) { msg(r.error === 'duplicate' ? 'הטלפון כבר קיים' : 'שגיאה בשמירה'); $('#edSave').disabled = false; return; }
         closeEdit();
         if (f.phone) { await load(); } else { Object.assign(g, f); buildHead(); render(); }

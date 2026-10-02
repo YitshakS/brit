@@ -21,9 +21,13 @@
     .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .grow { flex: 1 1 130px !important; min-width: 0; }
 
-    .topscroll { overflow-x: auto; overflow-y: hidden; height: 16px; position: sticky; top: var(--tabs-h, 52px); z-index: 5; background: var(--bg); margin-bottom: 4px; }
+    .topscroll { overflow-x: auto; overflow-y: hidden; height: 18px; position: sticky; top: var(--tabs-h, 52px); z-index: 5; background: var(--bg); margin-bottom: 4px; }
     #topScrollInner { height: 1px; }
-    @media (hover: none) { .topscroll { display: none; } }
+    /* גלגלות גלילה עבות וקבועות (גם בטלפון, שם ברירת המחדל דקה ונעלמת), כדי שיהיה ברור שאפשר לגלול הצידה */
+    .topscroll::-webkit-scrollbar, .tablebox::-webkit-scrollbar { height: 14px; width: 14px; }
+    .topscroll::-webkit-scrollbar-track, .tablebox::-webkit-scrollbar-track { background: #dfeaf5; border-radius: 8px; }
+    .topscroll::-webkit-scrollbar-thumb, .tablebox::-webkit-scrollbar-thumb { background: #6f9cc4; border-radius: 8px; border: 2px solid #dfeaf5; }
+    .topscroll::-webkit-scrollbar-corner, .tablebox::-webkit-scrollbar-corner { background: #dfeaf5; }
     .tablebox { overflow: auto; max-height: 75vh; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
     table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: .92rem; }
     th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); border-inline-start: 1px solid var(--line); text-align: right; vertical-align: middle; background: #fff; white-space: nowrap; }

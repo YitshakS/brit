@@ -63,6 +63,7 @@
     button.view:hover { background: #e3f1fb; border-color: var(--accent); }
     button.dangerbtn { background: var(--bad); color: #fff; border: none; }
     button.dangerbtn:disabled { background: #d9a5a3; }
+    #tab-add .fields { grid-template-columns: 1fr; }
     #tab-add .fields label { min-height: 2.6em; display: flex; align-items: flex-end; line-height: 1.25; }
     #tab-add .fields label small { display: block; font-size: .72rem; }
     @media (min-width: 700px) { #tab-add .fields { grid-template-columns: repeat(3, 1fr); } }
@@ -524,7 +525,7 @@
   };
   const readCard = d => ({ first: q(d, 'first').value.trim(), last: q(d, 'last').value.trim(), display: q(d, 'display').value.trim(), phone: q(d, 'phone').value.trim(), form: q(d, 'form').value, table: q(d, 'table').value.trim() });
   const clearCard = d => d.querySelectorAll('input,select').forEach(e => { e.value = ''; e.style.borderColor = ''; });
-  const manual = newCard(false); $('#manualHolder').append(manual);
+  const manual = newCard(true); $('#manualHolder').append(manual);
   const extras = () => [...$('#stageList').children];
   ['input', 'change'].forEach(ev => ['#manualHolder', '#stageList'].forEach(sel => $(sel).addEventListener(ev, e => { e.target.style.borderColor = ''; })));
 

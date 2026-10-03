@@ -66,20 +66,41 @@
       app.innerHTML =
         (PREVIEW ? '<div class="banner"><b>תצוגה מקדימה בלבד!</b> הצפיה בהזמנה ואישור כמות המשתתפים אינם נשמרים במאגר הנתונים</div>' : '') +
         '<h1>' + esc(g.display) + ' ' + w.dear + '</h1>' +
-        '<p>' + esc(E.opening) + '<br>אנו שמחים ונרגשים ' + w.invite + '<br>לשמחת ברית המילה של בננו</p>' +
-        '<h2>' + esc(E.babyName) + '</h2>' +
-        '<p>שתתקיים בעז"ה<br><span class="hl">' + esc(E.dateText) + ', ' + esc(E.timeText) + '</span><br>' + esc(E.place) + '</p>' +
+        '<p>' + esc(E.opening) + '<br>אנו שמחים ונרגשים ' + w.invite + '<br>על שמחת ברית המילה של בננו</p>' +
+        (E.babyName ? '<h2>' + esc(E.babyName) + '</h2>' : '') +
+        '<p>שתתקיים בעז"ה<br><span class="hl">' + esc(E.dateText) + '<br>' + esc(E.timeText) + '<br>' + esc(E.place) + '</span>' + '</p>' +
         (E.wazeUrl ? '<p>או <a target="_blank" rel="noopener" href="' + esc(E.wazeUrl) + '">ללחוץ כאן לפתיחת המיקום באפליקציה</a></p>' : '') +
-        (E.mapImage ? '<p class="mapbox"><a href="' + esc(E.mapImage) + '" target="_blank" rel="noopener"><img class="map" src="' + esc(E.mapImage) + '" alt="מפת הגעה"></a><span class="muted">מפת הגעה (לחיצה להגדלה)</span></p>' : '') +
         (E.note ? '<p>' + esc(E.note) + '</p>' : '') +
         (E.rsvpDeadline ? '<p>נא לאשר השתתפות עד ' + esc(E.rsvpDeadline) + '<br>(גם לאחר האישור אפשר לעדכן)</p>' : '') +
+        '<p class="ask">על מנת שנוכל להיערך נשמח ' + w.confirm + '</p>' +
         '<label for="count">כמות המשתתפים</label>' +
         '<div class="stepper"><button type="button" id="minus" aria-label="הפחת">-</button>' +
         '<input type="number" id="count" min="0" max="50" inputmode="numeric" value="' + (g.count == null ? '' : g.count) + '">' +
         '<button type="button" id="plus" aria-label="הוסף">+</button></div>' +
         '<button type="button" class="primary" id="ok" disabled>אישור</button>' +
-        '<p id="msg"></p>';
+        '<p id="msg"></p>' +
+        (E.mapImage ? '<p class="mapbox"><span class="muted">מפת הגעה (לחיצה להגדלה)</span><a href="' + esc(E.mapImage) + '"><img class="map" src="' + esc(E.mapImage) + '" alt="מפת הגעה"></a></p>' : '');
       const count = document.getElementById('count'), ok = document.getElementById('ok'), msg = document.getElementById('msg');
+
+      // מפת ההגעה נפתחת בחלון מודל עם סגירה (✕, לחיצה על הרקע, Esc וכפתור החזרה בטלפון), ולא כדף נפרד
+      const mapLink = app.querySelector('.mapbox a');
+      if (mapLink) {
+        let modal = document.getElementById('mapModal');
+        if (!modal) {
+          modal = document.createElement('div'); modal.id = 'mapModal'; modal.hidden = true;
+          modal.innerHTML = '<button type="button" id="mapClose" aria-label="סגירה">✕</button><div class="mapscroll"><img id="mapBig" alt="מפת הגעה"></div><div class="maphint">לחיצה על המפה: הגדלה והקטנה</div>';
+          document.body.append(modal);
+        }
+        const big = document.getElementById('mapBig');
+        const hide = () => { modal.hidden = true; modal.classList.remove('zoomed'); document.body.style.overflow = ''; };
+        const close = () => { if (!modal.hidden && history.state && history.state.map) history.back(); else hide(); };
+        mapLink.onclick = e => { e.preventDefault(); big.src = mapLink.href; modal.hidden = false; document.body.style.overflow = 'hidden'; history.pushState({ map: 1 }, ''); };
+        big.onclick = () => modal.classList.toggle('zoomed');
+        document.getElementById('mapClose').onclick = close;
+        modal.onclick = e => { if (e.target === modal || e.target.classList.contains('mapscroll')) close(); };
+        window.addEventListener('popstate', hide);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
+      }
 
       function check() {
         if (PREVIEW) { ok.disabled = true; return; }

@@ -46,6 +46,7 @@
     .gap { display: inline-block; width: 1.2em; }
     .muted { color: var(--muted); }
     .wa { background: #25d366; color: #fff; border: none; }
+    .wa.new { background: #c62828; } /* "שלח" (עוד לא נשלח): באותו אדום כמו שורת הבקשה לאישור בהזמנה */
     .ok { background: #def5e5; color: #1d7a3a; }
     .no { background: #fde3e2; color: #a12622; }
     .pill { display: inline-block; font-size: .8rem; padding: 1px 9px; border-radius: 999px; background: #eef2f6; }
@@ -371,7 +372,7 @@
       return td;
     }
     if (c.type === 'action') {
-      td.innerHTML = '<button class="wa">' + (g.sent ? 'שלח שוב' : 'שלח') + '</button>';
+      td.innerHTML = '<button class="wa' + (g.sent ? '' : ' new') + '">' + (g.sent ? 'שלח שוב' : 'שלח') + '</button>';
       td.firstChild.onclick = () => send(g);
       return td;
     }

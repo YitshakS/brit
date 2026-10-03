@@ -66,13 +66,12 @@ button:disabled { background: #8d9aa8; color: #fff; cursor: default; border: non
 input, select { border: 1px solid var(--line); border-radius: 10px; padding: .4em .6em; background: #fff; color: var(--ink); }
 
 .ask { color: #c62828; font-weight: bold; }
-#mapModal { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .82); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+#mapModal { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .82); touch-action: none; overscroll-behavior: contain; user-select: none; -webkit-user-select: none; }
 #mapModal[hidden] { display: none; }
-#mapModal .mapscroll { max-width: 96vw; max-height: 86vh; overflow: auto; border-radius: 10px; background: #fff; }
-#mapBig { display: block; width: min(96vw, 1200px); height: auto; cursor: zoom-in; }
-#mapModal.zoomed #mapBig { width: max(220vw, 900px); cursor: zoom-out; }
-#mapClose { position: absolute; top: 12px; left: 12px; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: none; background: rgba(255, 255, 255, .92); color: #222; font-size: 1.2rem; line-height: 1; box-shadow: 0 2px 8px rgba(0, 0, 0, .4); }
-#mapModal .maphint { color: #fff; font-size: .8rem; opacity: .85; }
+#mapModal .mapstage { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
+#mapBig { position: absolute; left: 50%; top: 50%; width: min(96vw, 1200px); height: auto; transform: translate(-50%, -50%); transform-origin: center; border-radius: 10px; background: #fff; will-change: transform; -webkit-user-drag: none; user-select: none; }
+#mapClose { position: absolute; z-index: 2; top: 12px; left: 12px; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: none; background: rgba(255, 255, 255, .92); color: #222; font-size: 1.2rem; line-height: 1; box-shadow: 0 2px 8px rgba(0, 0, 0, .4); }
+#mapModal .maphint { position: absolute; z-index: 2; bottom: 14px; left: 0; right: 0; text-align: center; color: #fff; font-size: .8rem; opacity: .85; pointer-events: none; }
 .mapbox { margin: .2em 0 .8em; }
 .mapbox .map { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
 .mapbox .muted { display: block; font-size: .8rem; margin-bottom: 4px; }

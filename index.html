@@ -82,26 +82,71 @@
         (E.mapImage ? '<p class="mapbox"><span class="muted">מפת הגעה (לחיצה להגדלה)</span><a href="' + esc(E.mapImage) + '"><img class="map" src="' + esc(E.mapImage) + '" alt="מפת הגעה"></a></p>' : '');
       const count = document.getElementById('count'), ok = document.getElementById('ok'), msg = document.getElementById('msg');
 
-      // מפת ההגעה נפתחת בחלון מודל עם סגירה (✕, לחיצה על הרקע, Esc וכפתור החזרה בטלפון), ולא כדף נפרד
+      // מפת ההגעה נפתחת בחלון מודל. הרקע וכפתור הסגירה קבועים, וההגדלה (צביטה, גלגלת, הקשה כפולה) והגרירה פועלות רק על המפה עצמה
       const mapLink = app.querySelector('.mapbox a');
       if (mapLink) {
         let modal = document.getElementById('mapModal');
         if (!modal) {
           modal = document.createElement('div'); modal.id = 'mapModal'; modal.hidden = true;
-          modal.innerHTML = '<button type="button" id="mapClose" aria-label="סגירה">✕</button><div class="mapscroll"><img id="mapBig" alt="מפת הגעה"></div><div class="maphint">לחיצה על המפה: הגדלה והקטנה</div>';
+          modal.innerHTML = '<button type="button" id="mapClose" aria-label="סגירה">✕</button><div class="mapstage"><img id="mapBig" alt="מפת הגעה" draggable="false"></div><div class="maphint">צביטה או הקשה כפולה: הגדלה והקטנה</div>';
           document.body.append(modal);
         }
-        const big = document.getElementById('mapBig');
-        const hide = () => { modal.hidden = true; modal.classList.remove('zoomed'); document.body.style.overflow = ''; };
+        const stage = modal.querySelector('.mapstage'), big = document.getElementById('mapBig');
+        let s = 1, tx = 0, ty = 0;
+        const pts = new Map();
+        let start = null, moved = false, lastTap = 0;
+        const apply = () => {
+          const sw = stage.clientWidth, sh = stage.clientHeight, w = big.offsetWidth, h = big.offsetHeight;
+          const mx = Math.max(0, (w * s - sw) / 2), my = Math.max(0, (h * s - sh) / 2);
+          tx = Math.max(-mx, Math.min(mx, tx)); ty = Math.max(-my, Math.min(my, ty));
+          if (s <= 1) { tx = 0; ty = 0; }
+          big.style.transform = 'translate(-50%,-50%) translate(' + tx + 'px,' + ty + 'px) scale(' + s + ')';
+        };
+        const zoomAt = (px, py, ns) => {
+          ns = Math.max(1, Math.min(4, ns));
+          const r = stage.getBoundingClientRect(), cx = px - r.left - r.width / 2, cy = py - r.top - r.height / 2;
+          tx = cx - (ns / s) * (cx - tx); ty = cy - (ns / s) * (cy - ty); s = ns; apply();
+        };
+        const reset = () => { s = 1; tx = 0; ty = 0; apply(); };
+        const hide = () => { modal.hidden = true; document.body.style.overflow = ''; reset(); };
         const close = () => { if (!modal.hidden && history.state && history.state.map) history.back(); else hide(); };
-        mapLink.onclick = e => { e.preventDefault(); big.src = mapLink.href; modal.hidden = false; document.body.style.overflow = 'hidden'; history.pushState({ map: 1 }, ''); };
-        big.onclick = () => modal.classList.toggle('zoomed');
+        mapLink.onclick = e => { e.preventDefault(); big.src = mapLink.href; modal.hidden = false; document.body.style.overflow = 'hidden'; reset(); history.pushState({ map: 1 }, ''); };
         document.getElementById('mapClose').onclick = close;
-        modal.onclick = e => { if (e.target === modal || e.target.classList.contains('mapscroll')) close(); };
         window.addEventListener('popstate', hide);
         document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
+        stage.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, s * Math.pow(1.0015, -e.deltaY)); }, { passive: false });
+        stage.addEventListener('pointerdown', e => {
+          try { stage.setPointerCapture(e.pointerId); } catch (x) {}
+          pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          start = { x: e.clientX, y: e.clientY, t: Date.now() }; moved = pts.size > 1;
+        });
+        stage.addEventListener('pointermove', e => {
+          const p = pts.get(e.pointerId); if (!p) return;
+          if (pts.size >= 2) {
+            const [a, b] = [...pts.values()]; const d0 = Math.hypot(a.x - b.x, a.y - b.y);
+            p.x = e.clientX; p.y = e.clientY;
+            const [c, d] = [...pts.values()]; const d1 = Math.hypot(c.x - d.x, c.y - d.y);
+            if (d0 > 0) zoomAt((c.x + d.x) / 2, (c.y + d.y) / 2, s * d1 / d0);
+            moved = true;
+          } else {
+            const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+            if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) moved = true;
+            if (s > 1) { tx += dx; ty += dy; apply(); }
+          }
+        });
+        const up = e => {
+          if (!pts.has(e.pointerId)) return;
+          pts.delete(e.pointerId);
+          if (!moved && start && pts.size === 0 && Date.now() - start.t < 400) {
+            const r = big.getBoundingClientRect(); // לפי מיקום האצבע, כי עם pointer capture היעד תמיד הרקע
+            const onImg = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+            if (!onImg) { close(); }
+            else if (Date.now() - lastTap < 350) { s > 1 ? reset() : zoomAt(e.clientX, e.clientY, 2.5); lastTap = 0; }
+            else lastTap = Date.now();
+          }
+        };
+        stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', e => { pts.delete(e.pointerId); });
       }
-
       function check() {
         if (PREVIEW) { ok.disabled = true; return; }
         const v = count.value === '' ? NaN : Number(count.value);

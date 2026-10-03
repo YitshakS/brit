@@ -12,6 +12,7 @@ const CONFIG = {
     timeText: 'בשעה [שעה]',
     place: '[מקום האירוע]',
     wazeUrl: '',
+    mapImage: 'img/map.jpg', // מפת הגעה (ריק = בלי מפה)
     note: '',
     rsvpDeadline: ''
   },

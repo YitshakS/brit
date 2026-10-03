@@ -70,6 +70,7 @@
         '<h2>' + esc(E.babyName) + '</h2>' +
         '<p>שתתקיים בעז"ה<br><span class="hl">' + esc(E.dateText) + ', ' + esc(E.timeText) + '</span><br>' + esc(E.place) + '</p>' +
         (E.wazeUrl ? '<p>או <a target="_blank" rel="noopener" href="' + esc(E.wazeUrl) + '">ללחוץ כאן לפתיחת המיקום באפליקציה</a></p>' : '') +
+        (E.mapImage ? '<p class="mapbox"><a href="' + esc(E.mapImage) + '" target="_blank" rel="noopener"><img class="map" src="' + esc(E.mapImage) + '" alt="מפת הגעה"></a><span class="muted">מפת הגעה (לחיצה להגדלה)</span></p>' : '') +
         (E.note ? '<p>' + esc(E.note) + '</p>' : '') +
         (E.rsvpDeadline ? '<p>נא לאשר השתתפות עד ' + esc(E.rsvpDeadline) + '<br>(גם לאחר האישור אפשר לעדכן)</p>' : '') +
         '<label for="count">כמות המשתתפים</label>' +

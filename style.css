@@ -65,6 +65,10 @@ button.primary:hover { background: var(--accent-dark); }
 button:disabled { background: #8d9aa8; color: #fff; cursor: default; border: none; }
 input, select { border: 1px solid var(--line); border-radius: 10px; padding: .4em .6em; background: #fff; color: var(--ink); }
 
+.mapbox { margin: .8em 0; }
+.mapbox .map { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+.mapbox .muted { display: block; font-size: .8rem; margin-top: 4px; }
+
 .stepper { display: flex; justify-content: center; align-items: center; gap: 6px; margin: .5em 0 1em; }
 .stepper button, .stepper input { height: clamp(40px, 5.5vh, 58px); }
 .stepper button { width: clamp(40px, 5.5vh, 58px); padding: 0; font-size: 1.3em; font-family: monospace; background: transparent; transition: background-color .2s, color .2s; }

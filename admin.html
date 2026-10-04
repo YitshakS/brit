@@ -521,7 +521,8 @@
   function send(g) {
     if (!digits9(g.phone)) { alert('מספר הטלפון לא תקין'); return; }
     pending = g;
-    window.open('https://wa.me/' + waNumber(g.phone) + '?text=' + encodeURIComponent(message(g)), '_blank', 'noopener');
+    // שם חלון קבוע: במחשב כל שליחה נפתחת באותה לשונית ולא בלשונית חדשה (עם noopener הדפדפן תמיד פותח לשונית חדשה)
+    window.open('https://wa.me/' + waNumber(g.phone) + '?text=' + encodeURIComponent(message(g)), 'brit_whatsapp');
   }
   function askSent() {
     if (!pending) return;

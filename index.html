@@ -84,13 +84,6 @@
         (E.mapImage ? '<p class="mapbox"><span class="muted">מפת הגעה (לחיצה להגדלה)</span><a href="' + esc(E.mapImage) + '"><img class="map" src="' + esc(E.mapImage) + '" alt="מפת הגעה"></a></p>' : '');
       const count = document.getElementById('count'), ok = document.getElementById('ok'), msg = document.getElementById('msg');
 
-      // פס התצוגה המקדימה קבוע בראש המסך. משאירים לו מקום כדי שלא יסתיר את שם המוזמן (בטלפון הפס תופס שתי שורות)
-      if (PREVIEW) {
-        const padForBanner = () => { const b = document.querySelector('.banner'); document.body.style.paddingTop = b ? b.offsetHeight + 'px' : ''; };
-        padForBanner();
-        if (!window.__bannerPad) { window.__bannerPad = true; window.addEventListener('resize', padForBanner); }
-      }
-
       // מפת ההגעה נפתחת בחלון מודל. הרקע וכפתור הסגירה קבועים, וההגדלה (צביטה, גלגלת, הקשה כפולה) והגרירה פועלות רק על המפה עצמה
       const mapLink = app.querySelector('.mapbox a');
       if (mapLink) {
